@@ -1,2 +1,5 @@
 # hello-world
 repository on Git-Hub
+This is the blog section to the website VotoxVoto that I contributed to. VotoxVoto is a website that analysis previous elections to be able to understand present results and predict future elections in the counrty of Mexico. 
+Why are blogs important to this project?
+Blogs give the opportunity for citizens to explore a new form of political communication, where they will be able to find more in depth information about different topics. Within this repo, blogs are displayed on the page, where the user has an option to use pagination to select thru the various blogs. If the user has interest in a particular blog, the user can also click on view pages, which will take the user to a more in depth article on the subject matter, along with a variety of social media platforms to share the blog, a picture of the author, and a graph displaying data related to the subject. Also included is a form, where an administrator has the option to create a blog by filling out a validated form upon success.
