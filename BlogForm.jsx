@@ -1,21 +1,26 @@
 import React, { Fragment } from "react";
-import * as Yup from "yup";
-import { addBlog } from "../../services/blogService";
+//import * as Yup from "yup";
+import { addBlog, updateBlog } from "../../services/blogService";
 import PropTypes from "prop-types";
 import {
   Grid,
   Container,
   Button,
   TextField,
-  Checkbox,
-  FormGroup,
   Box,
-  FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Card,
 } from "@material-ui/core";
-import { Formik, Form } from "formik";
+import { Formik, Form, Field } from "formik";
 
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import * as lookUpService from "../../services/lookUpService";
+import { onGlobalError } from "../../services/serviceHelpers";
+
 import debug from "sabio-debug";
 
 const _logger = debug.extend("BlogForm");
@@ -43,34 +48,82 @@ _logger("test blogform");
 class BlogForm extends React.Component {
   state = {
     formData: {
-      blogTypeId: 2,
+      blogTypeId: 0,
       title: "",
       subject: "",
       content: "",
       imageUrl: "",
-      isPublished: true,
+      isPublished: false,
       statusId: 1,
     },
+    blogTypes: [],
+    statusTypes: [],
+
     isEditing: false,
+  };
+
+  componentDidMount() {
+    const types = { types: ["BlogTypes", "StatusTypes"] };
+    lookUpService
+      .get(types)
+      .then(this.onGetBlogTypesSuccess)
+      .catch(onGlobalError);
+  }
+
+  onGetBlogTypesSuccess = (response) => {
+    let blog = { ...this.state.formData };
+    if (this.props.location.state) {
+      blog = { ...this.props.location.state };
+      blog.blogTypeId = this.props.location.state.blogCategory.id;
+    }
+    this.setState(() => {
+      return {
+        formData: blog,
+        blogTypes: response.item.blogTypes,
+        statusTypes: response.item.statusTypes,
+      };
+    });
+
+    _logger("define blogtypes here", response);
   };
 
   handleSumbit = (values) => {
     const blog = values;
-    _logger("newUser=values", blog);
 
-    addBlog(blog).then(this.onAddBlogSuccess).catch(this.onAddBlogError);
+    if (this.props.location?.state?.id) {
+      updateBlog(blog).then(this.onAddBlogSuccess).catch(this.onAddBlogError);
+    } else {
+      addBlog(blog).then(this.onAddBlogSuccess).catch(this.onAddBlogError);
+    }
   };
 
   onAddBlogSuccess = (response) => {
     _logger("Add Blog is firing", response);
-    return toastr["success"]("You have successfully created a blog.");
+    this.props.history.push("/blogs");
 
-    //this.props.history.push("/blogs");
+    return toastr["success"]("You have successfully created a blog.");
   };
   onAddBlogError = (response) => {
     _logger("Add Blog Error is firing", response);
     return toastr["error"]("create blog was unsuccessful, please try again.");
   };
+
+  mapBlogsId = (blogId) => {
+    return (
+      <MenuItem key={`blog_${blogId.id}`} value={blogId.id}>
+        {blogId.name}
+      </MenuItem>
+    );
+  };
+
+  mapStatus = (statusId) => {
+    return (
+      <MenuItem key={`blog_${statusId.id}`} value={statusId.id}>
+        {statusId.name}
+      </MenuItem>
+    );
+  };
+
   render() {
     return (
       <Fragment>
@@ -82,7 +135,7 @@ class BlogForm extends React.Component {
                   <div className="bg-composed-wrapper--content">
                     <Formik
                       enableReinitialize={true}
-                      validationSchema={Yup.object().shape({
+                      /* validationSchema={Yup.object().shape({
                         blogTypeId: Yup.number().required("Is Required"),
 
                         title: Yup.string()
@@ -98,7 +151,7 @@ class BlogForm extends React.Component {
                         isPublished: Yup.boolean().required("Is Required"),
                         imageUrl: Yup.string().required("Is Required"),
                         statusId: Yup.number().required("Is Required"),
-                      })}
+                      })} */
                       initialValues={this.state.formData}
                       onSubmit={this.handleSumbit}
                     >
@@ -111,167 +164,170 @@ class BlogForm extends React.Component {
                       }) => (
                         <Form>
                           <Grid container spacing={0} className="min-vh-100">
-                            <Grid
-                              item
-                              xs={12}
-                              md={8}
-                              lg={7}
-                              className="d-flex align-items-center"
-                            >
-                              <Container maxWidth="sm">
-                                <h3 className="display-4 mb-2 font-weight-bold text-primary">
-                                  Create blog
-                                </h3>
-                                <p className="font-size-lg mb-5 text-primary-50 ">
-                                  Fill in the fields below and youll be good to
-                                  go.
-                                </p>
+                            <Card className="w-75 mr-4">
+                              <Grid
+                                item
+                                xs={12}
+                                md={8}
+                                lg={12}
+                                className="d-flex align-items-center bg-white"
+                              >
+                                <Container maxWidth="xl">
+                                  <h3 className="display-4 mb-2 pt-4 font-weight-bold text-primary">
+                                    Create blog
+                                  </h3>
+                                  <p className="font-size-lg mb-5 text-primary-50 ">
+                                    Fill in the fields below and youll be good
+                                    to go.
+                                  </p>
 
-                                <div className="mb-3">
-                                  <TextField
-                                    //select
-                                    variant="outlined"
-                                    label="Blog Type Id"
-                                    fullWidth
-                                    type="number"
-                                    placeholder="Enter your Blog Type Id"
-                                    name="blogTypeId"
-                                    value={values.blogTypeId}
-                                    onChange={handleChange}
-                                    error={
-                                      touched.blogTypeId &&
-                                      Boolean(errors.blogTypeId)
-                                    }
-                                    helperText={
-                                      touched.blogTypeId && errors.blogTypeId
-                                    }
-                                  />
-                                </div>
-
-                                <div className="mb-3">
-                                  <TextField
-                                    variant="outlined"
-                                    label="Title"
-                                    fullWidth
-                                    placeholder="Enter your title"
-                                    name="title"
-                                    value={values.title}
-                                    onChange={handleChange}
-                                    error={
-                                      touched.title && Boolean(errors.title)
-                                    }
-                                    helperText={touched.title && errors.title}
-                                  />
-                                </div>
-                                <div className="mb-3">
-                                  <TextField
-                                    variant="outlined"
-                                    label="Subject"
-                                    fullWidth
-                                    placeholder="Enter Subject"
-                                    name="subject"
-                                    value={values.subject}
-                                    onChange={handleChange}
-                                    error={
-                                      touched.subject && Boolean(errors.subject)
-                                    }
-                                    helperText={
-                                      touched.subject && errors.subject
-                                    }
-                                  />
-                                </div>
-                                <CKEditor
-                                  editor={ClassicEditor}
-                                  data={values.content}
-                                  onChange={(event, editor) => {
-                                    const data = editor.getData();
-
-                                    setFieldValue("content", data);
-                                  }}
-                                  onError={(String, Boolean)}
-                                />
-
-                                <Box m={1}>
                                   <Box m={1}>
-                                    <FormGroup>
-                                      <FormControlLabel
-                                        control={<Checkbox defaultChecked />}
-                                        label="IsPublished"
-                                        value={values.isPublished}
-                                        name="IsPublished"
-                                        onChange={handleChange}
-                                      />
-                                    </FormGroup>
+                                    <Box m={1}>
+                                      <FormControl fullWidth>
+                                        <InputLabel> Blog Type </InputLabel>
+                                        <Select
+                                          name="blogTypeId"
+                                          value={values.blogTypeId}
+                                          onChange={handleChange}
+                                        >
+                                          {this.state.blogTypes.map(
+                                            this.mapBlogsId
+                                          )}
+                                        </Select>
+                                      </FormControl>
+                                    </Box>
                                   </Box>
-                                </Box>
 
-                                <div className="mb-3">
-                                  <TextField
-                                    variant="outlined"
-                                    label="ImageUrl"
-                                    fullWidth
-                                    placeholder="imageUrl"
-                                    name="imageUrl"
-                                    value={values.imageUrl}
-                                    onChange={handleChange}
-                                    error={
-                                      touched.imageUrl &&
-                                      Boolean(errors.imageUrl)
-                                    }
-                                    helperText={
-                                      touched.imageUrl && errors.imageUrl
-                                    }
+                                  <div className="mb-3">
+                                    <TextField
+                                      variant="outlined"
+                                      label="Title"
+                                      fullWidth
+                                      placeholder="Enter your title"
+                                      name="title"
+                                      value={values.title}
+                                      onChange={handleChange}
+                                      error={
+                                        touched.title && Boolean(errors.title)
+                                      }
+                                      helperText={touched.title && errors.title}
+                                    />
+                                  </div>
+                                  <div className="mb-3">
+                                    <TextField
+                                      variant="outlined"
+                                      label="Subject"
+                                      fullWidth
+                                      placeholder="Enter Subject"
+                                      name="subject"
+                                      value={values.subject}
+                                      onChange={handleChange}
+                                      error={
+                                        touched.subject &&
+                                        Boolean(errors.subject)
+                                      }
+                                      helperText={
+                                        touched.subject && errors.subject
+                                      }
+                                    />
+                                  </div>
+                                  <CKEditor
+                                    editor={ClassicEditor}
+                                    data={values.content}
+                                    onChange={(event, editor) => {
+                                      const data = editor.getData();
+
+                                      setFieldValue("content", data);
+                                    }}
+                                    onError={(String, Boolean)}
                                   />
-                                </div>
-                                <div className="mb-3">
-                                  <TextField
-                                    variant="outlined"
-                                    label="Status Id"
-                                    fullWidth
-                                    type="number"
-                                    placeholder="Enter your Status Id"
-                                    name="statusId"
-                                    value={values.statusId}
-                                    onChange={handleChange}
-                                    error={
-                                      touched.statusId &&
-                                      Boolean(errors.statusId)
-                                    }
-                                    helperText={
-                                      touched.statusId && errors.statusId
-                                    }
-                                  />
-                                </div>
+                                  <div className="mb-3 mx-2">
+                                    <div className="form-check">
+                                      <Field
+                                        type="checkbox"
+                                        name="isPublished"
+                                        className="form-check-input"
+                                      />
+                                      <label
+                                        htmlFor="isPublished"
+                                        className="form-check-label m-2 text"
+                                      >
+                                        <br />
+                                        Publish
+                                      </label>
+                                    </div>
+                                  </div>
+                                  {/* <Box m={1}>
+                                    <Box m={1}>
+                                      <FormGroup>
+                                        <FormControlLabel
+                                          control={<Checkbox defaultChecked />}
+                                          label="IsPublished"
+                                          value={values.isPublished}
+                                          name="isPublished"
+                                          onChange={handleChange}
+                                        />
+                                      </FormGroup>
+                                    </Box>
+                                  </Box> */}
 
-                                <div className="form-group pt-2 mb-4">
-                                  By clicking the <strong>Create blog</strong>{" "}
-                                  button below you agree to our terms of service
-                                  and privacy statement.
-                                </div>
+                                  <div className="mb-3">
+                                    <TextField
+                                      variant="outlined"
+                                      label="ImageUrl"
+                                      fullWidth
+                                      placeholder="imageUrl"
+                                      name="imageUrl"
+                                      value={values.imageUrl}
+                                      onChange={handleChange}
+                                      error={
+                                        touched.imageUrl &&
+                                        Boolean(errors.imageUrl)
+                                      }
+                                      helperText={
+                                        touched.imageUrl && errors.imageUrl
+                                      }
+                                    />
+                                  </div>
 
-                                <div>
-                                  <Button
-                                    color="primary"
-                                    size="large"
-                                    variant="contained"
-                                    className="mb-5 mr-2"
-                                  >
-                                    Edit
-                                  </Button>
+                                  <Box m={1}>
+                                    <Box m={1}>
+                                      <FormControl fullWidth type="number">
+                                        <InputLabel> Status </InputLabel>
+                                        <Select
+                                          name="statusId"
+                                          value={values.statusId}
+                                          onChange={handleChange}
+                                        >
+                                          {this.state.statusTypes.map(
+                                            this.mapStatus
+                                          )}
+                                        </Select>
+                                      </FormControl>
+                                    </Box>
+                                  </Box>
 
-                                  <Button
-                                    tabIndex="4"
-                                    color="primary"
-                                    size="large"
-                                    variant="contained"
-                                    className="mb-5 ml-2"
-                                    type="submit "
-                                  >
-                                    Create Blog
-                                  </Button>
-                                </div>
-                              </Container>
-                            </Grid>
+                                  <div className="form-group pt-2 mb-4">
+                                    By clicking the <strong>Create blog</strong>{" "}
+                                    button below you agree to our terms of
+                                    service and privacy statement.
+                                  </div>
+
+                                  <div>
+                                    <Button
+                                      tabIndex="4"
+                                      color="primary"
+                                      size="large"
+                                      variant="contained"
+                                      className="mb-5 ml-2"
+                                      type="submit "
+                                    >
+                                      Submit
+                                    </Button>
+                                  </div>
+                                </Container>
+                              </Grid>
+                            </Card>
                           </Grid>
                         </Form>
                       )}
@@ -292,7 +348,10 @@ BlogForm.propTypes = {
   }),
   location: PropTypes.shape({
     state: PropTypes.shape({
-      blogTypeId: PropTypes.numnber,
+      id: PropTypes.number,
+      blogCategory: PropTypes.shape({
+        id: PropTypes.number,
+      }),
       title: PropTypes.string,
       subject: PropTypes.string,
       content: PropTypes.string,
