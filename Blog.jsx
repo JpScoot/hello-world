@@ -7,6 +7,7 @@ import { onGlobalError } from "../../services/serviceHelpers";
 import Pagination from "rc-pagination";
 import "rc-pagination/assets/index.css";
 import BlogCard from "./BlogCard";
+import PropTypes from "prop-types";
 
 import debug from "sabio-debug";
 
@@ -36,10 +37,7 @@ class Blog extends React.Component {
       .catch(onGlobalError);
   };
   onGetBlogSuccess = (thisBlog) => {
-    _logger("get Blog is firing", thisBlog); //find array using dev tools
-
     const blogs = thisBlog.item.pagedItems;
-    _logger("blogs array", blogs);
 
     this.setState((prevState) => {
       return {
@@ -53,10 +51,29 @@ class Blog extends React.Component {
 
   mapBlog = (blog) => {
     _logger("blog", blog);
-    return <BlogCard blog={blog} key={blog.id} />;
+    return (
+      <BlogCard
+        blog={blog}
+        key={blog.id}
+        handleId={this.handleId}
+        handleEditId={this.handleEditId}
+        currentUser={this.props.currentUser}
+      />
+    );
   };
 
-  SearchChange = (e) => {
+  handleId = (blog) => {
+    //debugger;
+    this.props.history.push(`/blogs/${blog.id}`, blog);
+  };
+
+  handleEditId = (blog) => {
+    _logger("blog", blog);
+    //debugger;
+    this.props.history.push(`/blogs/${blog.id}/edit`, blog);
+  };
+
+  searchChange = (e) => {
     _logger(e);
     e.preventDefault();
 
@@ -110,9 +127,9 @@ class Blog extends React.Component {
           </Button>
         </div>
         <div className="py-5 ">
-          <div className="text-center mt-5 mb-3 pt-3">
+          <div className="text-center mt-5 mb-5 pt-3">
             <h1 className="display-4 text-black mb-3 font-weight-bold ">
-              Latest blog posts
+              Blogs
             </h1>
           </div>
 
@@ -148,5 +165,26 @@ class Blog extends React.Component {
     );
   }
 }
+
+Blog.propTypes = {
+  blog: PropTypes.shape({
+    title: PropTypes.string.isRequired,
+    subject: PropTypes.string.isRequired,
+    content: PropTypes.string.isRequired,
+    blogTypeId: PropTypes.number.isRequired,
+    authorId: PropTypes.number.isRequired,
+    isPublished: PropTypes.bool.isRequired,
+    imageUrl: PropTypes.string.isRequired,
+    statusId: PropTypes.number.isRequired,
+    id: PropTypes.number.isRequired,
+  }),
+  currentUser: PropTypes.shape({
+    id: PropTypes.number,
+  }),
+  history: PropTypes.shape({
+    push: PropTypes,
+  }),
+  push: PropTypes.shape({}),
+};
 
 export default Blog;
